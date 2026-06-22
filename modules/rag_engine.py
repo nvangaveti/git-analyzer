@@ -1,7 +1,7 @@
 import os
 import ast
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_groq import ChatGroq
@@ -79,8 +79,9 @@ def build_vector_store(code_files: list[dict]) -> Chroma:
 
     print(f"Total chunks to embed: {len(final_docs)}")
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2"
+    embeddings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.getenv("HF_TOKEN"),
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     vectorstore = Chroma.from_documents(
@@ -93,8 +94,9 @@ def build_vector_store(code_files: list[dict]) -> Chroma:
 
 def load_vector_store() -> Chroma:
     """Load existing ChromaDB vector store."""
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2"
+    embeddings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.getenv("HF_TOKEN"),
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
     return Chroma(
         persist_directory=CHROMA_DIR,
