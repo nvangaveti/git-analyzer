@@ -86,7 +86,7 @@ def review_function(llm: ChatGroq, func: dict) -> dict:
 def run_code_review(code_files: list[dict], max_functions: int = 20) -> list[dict]:
     """Run LLM code review on all extracted functions."""
     llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),
+        groq_api_key=os.getenv("GROQ_API_KEY"),
         model_name="llama-3.3-70b-versatile",
         temperature=0
     )

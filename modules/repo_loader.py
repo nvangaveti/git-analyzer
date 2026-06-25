@@ -16,7 +16,11 @@ IGNORE_DIRS = {
 def clone_repo(github_url: str, dest: str = "./repo_cache") -> Repo:
     """Clone a GitHub repo to local directory."""
     if os.path.exists(dest):
-        shutil.rmtree(dest)
+        import stat
+        def remove_readonly(func, path, excinfo):
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        shutil.rmtree(dest, onerror=remove_readonly)
     print(f"Cloning {github_url}...")
     repo = Repo.clone_from(github_url, dest)
     print(f"Cloned successfully.")

@@ -1,7 +1,7 @@
 import os
 import ast
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_groq import ChatGroq
@@ -55,9 +55,19 @@ def extract_functions_from_file(file_info: dict) -> list[Document]:
         ))
     return docs
 
-def build_vector_store(code_files: list[dict]) -> Chroma:
+def build_vector_store(code_files: list[dict], chroma_dir: str = CHROMA_DIR) -> Chroma:
     """Build ChromaDB vector store from code files."""
     print("Building vector store...")
+    
+    # Clean up previous vector store directory if it exists
+    if os.path.exists(chroma_dir):
+        import shutil
+        import stat
+        def remove_readonly(func, path, excinfo):
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        shutil.rmtree(chroma_dir, onerror=remove_readonly)
+        
     all_docs = []
 
     for file_info in code_files:
@@ -79,34 +89,32 @@ def build_vector_store(code_files: list[dict]) -> Chroma:
 
     print(f"Total chunks to embed: {len(final_docs)}")
 
-    embeddings = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv("HF_TOKEN"),
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     vectorstore = Chroma.from_documents(
         documents=final_docs,
         embedding=embeddings,
-        persist_directory=CHROMA_DIR
+        persist_directory=chroma_dir
     )
     print("Vector store built successfully.")
     return vectorstore
 
-def load_vector_store() -> Chroma:
+def load_vector_store(chroma_dir: str = CHROMA_DIR) -> Chroma:
     """Load existing ChromaDB vector store."""
-    embeddings = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv("HF_TOKEN"),
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
     return Chroma(
-        persist_directory=CHROMA_DIR,
+        persist_directory=chroma_dir,
         embedding_function=embeddings
     )
 
 def get_rag_chain(vectorstore: Chroma):
     """Build RAG chain with Groq LLM."""
     llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),
+        groq_api_key=os.getenv("GROQ_API_KEY"),
         model_name="llama-3.3-70b-versatile",
         temperature=0
     )

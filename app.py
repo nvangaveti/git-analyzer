@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+import uuid
 from dotenv import load_dotenv
 
 from modules.repo_loader import clone_repo, get_code_files, extract_git_history
@@ -23,6 +24,8 @@ st.title("🔍 GitHub Repository Analyzer")
 st.caption("AI-powered codebase analysis — RAG Q&A · Git History · Code Review")
 
 # ─── Session State ─────────────────────────────────────────────────────────────
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
 if "repo_loaded" not in st.session_state:
     st.session_state.repo_loaded = False
 if "chat_history" not in st.session_state:
@@ -46,16 +49,30 @@ with st.sidebar:
 
 # ─── Load Repository ───────────────────────────────────────────────────────────
 if analyze_btn and github_url:
+    repo_cache_dir = f"./repo_cache_{st.session_state.session_id}"
+    chroma_db_dir = f"./chroma_db_{st.session_state.session_id}"
+    
     with st.spinner("Cloning repository..."):
         try:
-            repo = clone_repo(github_url)
+            # Close existing repo handle and ChromaDB client if present to release file locks on Windows
+            if "repo" in st.session_state and st.session_state.repo is not None:
+                try:
+                    st.session_state.repo.close()
+                except Exception:
+                    pass
+            if "retriever" in st.session_state and st.session_state.retriever is not None:
+                try:
+                    st.session_state.retriever.vectorstore._client.close()
+                except Exception:
+                    pass
+            repo = clone_repo(github_url, dest=repo_cache_dir)
             st.session_state.repo = repo
         except Exception as e:
             st.error(f"Failed to clone repo: {e}")
             st.stop()
 
     with st.spinner("Reading code files..."):
-        code_files = get_code_files("./repo_cache")
+        code_files = get_code_files(repo_cache_dir)
         st.session_state.code_files = code_files
         st.session_state.file_count = len(code_files)
 
@@ -65,7 +82,7 @@ if analyze_btn and github_url:
         st.session_state.commit_count = len(commits)
 
     with st.spinner("Building vector store for RAG..."):
-        vectorstore = build_vector_store(code_files)
+        vectorstore = build_vector_store(code_files, chroma_dir=chroma_db_dir)
         chain, retriever = get_rag_chain(vectorstore)
         st.session_state.chain = chain
         st.session_state.retriever = retriever
