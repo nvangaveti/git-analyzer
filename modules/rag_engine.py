@@ -1,7 +1,9 @@
 import os
 import ast
+import requests
+import time
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.embeddings import Embeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_groq import ChatGroq
@@ -13,6 +15,40 @@ from dotenv import load_dotenv
 load_dotenv()
 
 CHROMA_DIR = "./chroma_db"
+
+class SimpleHFEmbeddings(Embeddings):
+    def __init__(self, api_key: str, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+        self.api_key = api_key
+        self.model_name = model_name
+        self.api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
+        
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        # Hugging Face inference API might fail if the model is loading, so we retry with backoff
+        for attempt in range(5):
+            try:
+                response = requests.post(
+                    self.api_url,
+                    headers=headers,
+                    json={"inputs": texts, "options": {"wait_for_model": True}},
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 503:
+                    # Model is loading
+                    time.sleep(5)
+                else:
+                    raise Exception(f"HF API error {response.status_code}: {response.text}")
+            except Exception as e:
+                if attempt == 4:
+                    raise e
+                time.sleep(2)
+        return []
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed_documents([text])[0]
+
 
 def extract_functions_from_file(file_info: dict) -> list[Document]:
     """Extract individual functions from Python files using AST."""
@@ -89,7 +125,8 @@ def build_vector_store(code_files: list[dict], chroma_dir: str = CHROMA_DIR) -> 
 
     print(f"Total chunks to embed: {len(final_docs)}")
 
-    embeddings = HuggingFaceEmbeddings(
+    embeddings = SimpleHFEmbeddings(
+        api_key=os.getenv("HF_TOKEN"),
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
@@ -103,7 +140,8 @@ def build_vector_store(code_files: list[dict], chroma_dir: str = CHROMA_DIR) -> 
 
 def load_vector_store(chroma_dir: str = CHROMA_DIR) -> Chroma:
     """Load existing ChromaDB vector store."""
-    embeddings = HuggingFaceEmbeddings(
+    embeddings = SimpleHFEmbeddings(
+        api_key=os.getenv("HF_TOKEN"),
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
     return Chroma(
