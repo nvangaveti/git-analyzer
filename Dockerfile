@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /code
 
+# Pre-install CPU-only PyTorch to save build time and disk space (150MB vs 2GB+)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 # Copy requirements and install python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
