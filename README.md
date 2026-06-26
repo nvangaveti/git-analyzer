@@ -16,6 +16,57 @@ An AI-powered developer tool that analyzes any GitHub repository using local RAG
 
 ---
 
+## 🏗️ System Architecture
+
+Below is the visual architectural diagram of the Git Analyzer pipeline, highlighting the ingestion, AST parsing, RAG semantic indexing, and parallel analysis flows:
+
+```mermaid
+graph TD
+    %% Styling definitions
+    classDef ui fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff,font-weight:bold;
+    classDef logic fill:#0EA5E9,stroke:#0369A1,stroke-width:1px,color:#fff;
+    classDef data fill:#10B981,stroke:#065F46,stroke-width:1px,color:#fff;
+    classDef external fill:#F59E0B,stroke:#78350F,stroke-width:1px,color:#fff;
+
+    %% Nodes
+    A[User / Developer] -->|Input: GitHub Repo URL| B(Streamlit Dashboard app.py)
+    B --> C{repo_loader.py}
+    
+    C -->|Git Clone via GitPython| D[Local Repo Cache folder]
+    C -->|Scan & Prune| E[Source Code Files]
+    
+    E -->|AST Node Traversal modules/code_reviewer.py| F[Isolate Functions]
+    F -->|Batch prompts| G(ChatGroq LLaMA-3.3-70B API)
+    G -->|JSON Structured Reports| H[Automated Code Reviews]
+    H -->|Render tables & expanders| B
+
+    E -->|AST Parsing modules/rag_engine.py| I[Function-Level Documents]
+    I -->|Text Splitter| J[Logical Chunks]
+    J -->|Local HuggingFaceEmbeddings CPU| K[384-Dim Vectors]
+    K -->|Store & Index| L[(ChromaDB)]
+    
+    D -->|history_analyzer.py| M[Extract Git Commits]
+    M -->|Classify & Aggregate| N[Contributor & Timeline Stats]
+    N -->|Plotly Charts| B
+
+    B -->|User Q&A Chat Input| O[Query]
+    O -->|Local Embedding CPU| P[Query Vector]
+    P -->|Similarity Search| L
+    L -->|Retrieve Context| Q[Top 5 Relevant Functions]
+    Q -->|Prompt Template| R[Context + Question]
+    R -->|Inference request| G
+    G -->|Streaming response| B
+
+    %% Class assignments
+    class B,O ui;
+    class C,F,I,J,M,N,P,R logic;
+    class D,E,H,Q,K,L data;
+    class G external;
+```
+
+---
+
+
 ## 🚀 Key Features
 
 ### 💬 Chat with Codebase (Local RAG)
