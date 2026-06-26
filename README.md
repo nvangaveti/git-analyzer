@@ -1,4 +1,17 @@
+---
+title: GitHub Repository Analyzer
+emoji: 🔍
+colorFrom: blue
+colorTo: indigo
+sdk: streamlit
+sdk_version: 1.41.0
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # 🔍 GitHub Repository Analyzer
+
 
 An AI-powered developer tool that analyzes any GitHub repository using local RAG (Retrieval-Augmented Generation), Git history analytics, and LLM-based code review — all inside an interactive Streamlit dashboard.
 
