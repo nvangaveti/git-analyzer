@@ -111,16 +111,19 @@ streamlit run app.py
 
 ---
 
-## 🌐 Deployment: Streamlit Community Cloud
+## 🌐 Deployment: Hugging Face Spaces (Docker SDK)
 
-This app can be deployed on Streamlit Community Cloud for free:
+This app is deployed on Hugging Face Spaces as a custom Docker container.
 
-1. Push this codebase to your own GitHub repository.
-2. Go to [share.streamlit.io](https://share.streamlit.io/) and log in using GitHub.
-3. Click **New app**, select your repository, branch, and set the entry file to `app.py`.
-4. Click **Advanced settings** (gear icon) and add your secrets:
-   ```toml
-   GROQ_API_KEY = "your_groq_api_key_here"
-   HF_TOKEN = "your_hf_token_here"
-   ```
-5. Click **Deploy!** The cloud builder will install requirements and launch the live URL.
+### Deployed Application Links
+- **Interactive Live App**: [Standalone App](https://nikhilv1104-git-analyzer.hf.space)
+- **Hugging Face Space Repository**: [nikhilv1104/git-analyzer](https://huggingface.co/spaces/nikhilv1104/git-analyzer)
+
+### How to Deploy Your Own:
+1. Create a new Space on [Hugging Face](https://huggingface.co/).
+2. Select **Docker** as the SDK and choose the **Blank** template.
+3. Link your GitHub repository or configure mirroring under Space Settings.
+4. Set up the following secrets in Space Settings under **Variables and secrets**:
+   * `GROQ_API_KEY`: Your Groq API key.
+   * `HF_TOKEN`: Your Hugging Face Access Token.
+5. Hugging Face will automatically detect the custom `Dockerfile`, build the container (optimized with CPU-only PyTorch), and launch your live application!
