@@ -22,3 +22,7 @@ __pycache__/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Developer Guides
+developer_guide.txt
+
